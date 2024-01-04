@@ -74,6 +74,14 @@ const reducer = (state = initialState, action) =>
         set(draftState, [...fieldMetadataPath, 'sortable'], state.fieldForm.sortable);
         break;
       }
+      /**
+       * TODO: refactor this so we don't need to do it, do we actually need a reducer?
+       */
+      case 'SET_DATA': {
+        draftState.initialData = action.data;
+        draftState.modifiedData = action.data;
+        break;
+      }
       default:
         return draftState;
     }

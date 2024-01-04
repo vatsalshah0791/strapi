@@ -47,7 +47,7 @@ export const Settings = ({
   );
 
   const sortOptionsSorted = sortOptions.sort((a, b) => formatter.compare(a.label, b.label));
-  const { settings } = modifiedData;
+  const { settings } = modifiedData ?? {};
 
   return (
     <Flex direction="column" alignItems="stretch" gap={4}>
@@ -77,7 +77,7 @@ export const Settings = ({
               defaultMessage: 'off',
             })}
             name="settings.searchable"
-            checked={settings.searchable}
+            checked={settings?.searchable}
           />
         </Box>
 
@@ -99,7 +99,7 @@ export const Settings = ({
               defaultMessage: 'off',
             })}
             name="settings.filterable"
-            checked={settings.filterable}
+            checked={settings?.filterable}
           />
         </Box>
 
@@ -121,7 +121,7 @@ export const Settings = ({
               defaultMessage: 'off',
             })}
             name="settings.bulkable"
-            checked={settings.bulkable}
+            checked={settings?.bulkable}
           />
         </Box>
       </Flex>
@@ -140,7 +140,7 @@ export const Settings = ({
             })}
             onChange={(value) => onChange({ target: { name: 'settings.pageSize', value } })}
             name="settings.pageSize"
-            value={modifiedData.settings.pageSize || ''}
+            value={settings?.pageSize || ''}
           >
             {[10, 20, 50, 100].map((pageSize) => (
               <Option key={pageSize} value={pageSize}>
@@ -157,7 +157,7 @@ export const Settings = ({
             })}
             onChange={(value) => onChange({ target: { name: 'settings.defaultSortBy', value } })}
             name="settings.defaultSortBy"
-            value={modifiedData.settings.defaultSortBy || ''}
+            value={settings?.defaultSortBy || ''}
           >
             {sortOptionsSorted.map(({ value, label }) => (
               <Option key={value} value={value}>
@@ -174,7 +174,7 @@ export const Settings = ({
             })}
             onChange={(value) => onChange({ target: { name: 'settings.defaultSortOrder', value } })}
             name="settings.defaultSortOrder"
-            value={modifiedData.settings.defaultSortOrder || ''}
+            value={settings?.defaultSortOrder || ''}
           >
             {['ASC', 'DESC'].map((order) => (
               <Option key={order} value={order}>

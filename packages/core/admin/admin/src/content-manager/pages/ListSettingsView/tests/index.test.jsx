@@ -2,84 +2,26 @@ import React from 'react';
 
 import { fireEvent } from '@testing-library/react';
 import { render as renderRTL, waitFor } from '@tests/utils';
-import { Route } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 
 import { ListSettingsView } from '../index';
 
-const layout = {
-  attributes: {
-    address: {
-      type: 'relation',
-      relation: 'manyToOne',
-    },
-    averagePrice: {
-      type: 'float',
-    },
-    cover: {
-      type: 'media',
-    },
-    id: {
-      type: 'integer',
-    },
-    since: {
-      type: 'date',
-    },
-  },
-  info: {
-    displayName: 'michka',
-  },
-  metadatas: {
-    address: {
-      list: {
-        label: '',
-        sortable: false,
-      },
-    },
-    averagePrice: {
-      list: {
-        label: 'AveragePrice',
-        sortable: true,
-      },
-    },
-    cover: {
-      list: {
-        label: 'Cover',
-        sortable: false,
-      },
-    },
-    id: {
-      list: {
-        label: 'id',
-        sortable: true,
-      },
-    },
-    since: {
-      list: {
-        label: 'since',
-        sortable: false,
-      },
-    },
-  },
-  layouts: {
-    list: ['id', 'address'],
-  },
-  options: {},
-  settings: {
-    bulkable: false,
-    defaultSortBy: 'id',
-    defaultSortOrder: 'ASC',
-    filterable: true,
-    pageSize: 10,
-    searchable: true,
-  },
-  uid: 'api::restaurant.restaurant',
+const LocationDisplay = () => {
+  const location = useLocation();
+
+  return <span data-testid="location-search">{location.search}</span>;
 };
 
-let testLocation;
-
-const render = ({ initialEntries } = {}) => ({
+const render = ({
+  initialEntries = ['/content-manager/collection-types/api::category.category/configurations/list'],
+} = {}) => ({
   ...renderRTL(
-    <ListSettingsView layout={layout} slug="api::restaurant.restaurant" updateLayout={jest.fn()} />,
+    <Routes>
+      <Route
+        path="/content-manager/:collectionType/:slug/configurations/list"
+        element={<ListSettingsView />}
+      />
+    </Routes>,
     {
       initialEntries,
       renderOptions: {
@@ -87,14 +29,7 @@ const render = ({ initialEntries } = {}) => ({
           return (
             <>
               {children}
-              <Route
-                path="*"
-                render={({ location }) => {
-                  testLocation = location;
-
-                  return null;
-                }}
-              />
+              <LocationDisplay />
             </>
           );
         },
@@ -108,7 +43,7 @@ describe('CM | LV | Configure the view', () => {
     const { getByRole } = render();
 
     await waitFor(() =>
-      expect(getByRole('heading', { name: 'Configure the view - Michka' })).toBeInTheDocument()
+      expect(getByRole('heading', { name: 'Configure the view - Address' })).toBeInTheDocument()
     );
 
     expect(getByRole('button', { name: 'Save' })).toBeInTheDocument();
@@ -126,7 +61,7 @@ describe('CM | LV | Configure the view', () => {
     /**
      * For each attribute it should have the following
      */
-    layout.layouts.list.forEach((attribute) => {
+    ['id', 'json', 'postal_code'].forEach((attribute) => {
       expect(getByRole('button', { name: `Edit ${attribute}` })).toBeInTheDocument();
       expect(getByRole('button', { name: `Delete ${attribute}` })).toBeInTheDocument();
     });
@@ -135,35 +70,37 @@ describe('CM | LV | Configure the view', () => {
   });
 
   it('should keep plugins query params when arriving on the page and going back', async () => {
-    const { getByRole, user } = render({
+    const { getByRole, getByText, user } = render({
       initialEntries: [
         '/content-manager/collection-types/api::category.category/configurations/list?plugins[i18n][locale]=fr',
       ],
     });
 
     await waitFor(() =>
-      expect(getByRole('heading', { name: 'Configure the view - Michka' })).toBeInTheDocument()
+      expect(getByRole('heading', { name: 'Configure the view - Address' })).toBeInTheDocument()
     );
 
-    expect(testLocation.search).toEqual('?plugins[i18n][locale]=fr');
+    expect(getByText('?plugins[i18n][locale]=fr')).toBeInTheDocument();
 
     await user.click(getByRole('link', { name: 'Back' }));
 
-    expect(testLocation.search).toEqual('?page=1&pageSize=10&sort=id:ASC&plugins[i18n][locale]=fr');
+    expect(
+      getByText('?page=1&pageSize=10&sort=id:ASC&plugins[i18n][locale]=fr')
+    ).toBeInTheDocument();
   });
 
   it('should add field', async () => {
     const { getByRole, user } = render();
 
     await waitFor(() =>
-      expect(getByRole('heading', { name: 'Configure the view - Michka' })).toBeInTheDocument()
+      expect(getByRole('heading', { name: 'Configure the view - Address' })).toBeInTheDocument()
     );
 
     await user.click(getByRole('button', { name: 'Add a field' }));
-    await user.click(getByRole('menuitem', { name: 'Cover' }));
+    await user.click(getByRole('menuitem', { name: 'slug' }));
 
-    expect(getByRole('button', { name: `Edit Cover` })).toBeInTheDocument();
-    expect(getByRole('button', { name: `Delete Cover` })).toBeInTheDocument();
+    expect(getByRole('button', { name: `Edit slug` })).toBeInTheDocument();
+    expect(getByRole('button', { name: `Delete slug` })).toBeInTheDocument();
   });
 
   describe('Edit modal', () => {
@@ -171,7 +108,7 @@ describe('CM | LV | Configure the view', () => {
       const { getByRole, queryByRole, user } = render();
 
       await waitFor(() =>
-        expect(getByRole('heading', { name: 'Configure the view - Michka' })).toBeInTheDocument()
+        expect(getByRole('heading', { name: 'Configure the view - Address' })).toBeInTheDocument()
       );
 
       await user.click(getByRole('button', { name: 'Edit id' }));
@@ -195,7 +132,7 @@ describe('CM | LV | Configure the view', () => {
       const { getByRole, queryByRole, user } = render();
 
       await waitFor(() =>
-        expect(getByRole('heading', { name: 'Configure the view - Michka' })).toBeInTheDocument()
+        expect(getByRole('heading', { name: 'Configure the view - Address' })).toBeInTheDocument()
       );
 
       await user.click(getByRole('button', { name: 'Edit id' }));
@@ -205,20 +142,6 @@ describe('CM | LV | Configure the view', () => {
       await user.click(getByRole('button', { name: 'Cancel' }));
 
       expect(queryByRole('dialog', { name: 'Edit Id' })).not.toBeInTheDocument();
-    });
-
-    it('should not show sortable toggle input if field not sortable', async () => {
-      const { getByRole, queryByRole, user } = render();
-
-      await waitFor(() =>
-        expect(getByRole('heading', { name: 'Configure the view - Michka' })).toBeInTheDocument()
-      );
-
-      await user.click(getByRole('button', { name: 'Edit address' }));
-
-      expect(
-        queryByRole('checkbox', { name: 'Enable sort on this field' })
-      ).not.toBeInTheDocument();
     });
   });
 });

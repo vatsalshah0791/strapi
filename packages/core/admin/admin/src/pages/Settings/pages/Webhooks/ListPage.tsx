@@ -37,7 +37,7 @@ import {
 } from '@strapi/helper-plugin';
 import { EmptyDocuments, Pencil, Plus, Trash } from '@strapi/icons';
 import { useIntl } from 'react-intl';
-import { NavLink, useHistory, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 
 import { UpdateWebhook } from '../../../../../../shared/contracts/webhooks';
 import { useTypedSelector } from '../../../../core/store/hooks';
@@ -57,7 +57,7 @@ const ListPage = () => {
   const { _unstableFormatAPIError: formatAPIError } = useAPIErrorHandler();
   const toggleNotification = useNotification();
   useFocusWhenNavigate();
-  const { push } = useHistory();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
 
   const {
@@ -155,8 +155,6 @@ const ListPage = () => {
       ? setWebhooksToDelete((prev) => [...prev, id])
       : setWebhooksToDelete((prev) => prev.filter((webhookId) => webhookId !== id));
 
-  const goTo = (to: string) => () => push(`${pathname}/${to}`);
-
   const isLoading = isRBACLoading || isWebhooksLoading;
   const numberOfWebhooks = webhooks?.length ?? 0;
   const webhooksToDeleteLength = webhooksToDelete.length;
@@ -229,7 +227,14 @@ const ListPage = () => {
               colCount={5}
               rowCount={numberOfWebhooks + 1}
               footer={
-                <TFooter onClick={canCreate ? goTo('create') : undefined} icon={<Plus />}>
+                <TFooter
+                  onClick={() => {
+                    if (canCreate) {
+                      navigate('create');
+                    }
+                  }}
+                  icon={<Plus />}
+                >
                   {formatMessage({
                     id: 'Settings.webhooks.list.button.add',
                     defaultMessage: 'Create new webhook',
@@ -290,7 +295,11 @@ const ListPage = () => {
                 {webhooks?.map((webhook) => (
                   <Tr
                     key={webhook.id}
-                    onClick={canUpdate ? goTo(webhook.id) : undefined}
+                    onClick={() => {
+                      if (canUpdate) {
+                        navigate(webhook.id);
+                      }
+                    }}
                     style={{ cursor: canUpdate ? 'pointer' : 'default' }}
                   >
                     <Td onClick={(e) => e.stopPropagation()}>
@@ -383,7 +392,7 @@ const ListPage = () => {
                 <Button
                   variant="secondary"
                   startIcon={<Plus />}
-                  onClick={() => (canCreate ? goTo('create') : {})}
+                  onClick={() => (canCreate ? navigate('create') : {})}
                 >
                   {formatMessage({
                     id: 'Settings.webhooks.list.button.add',

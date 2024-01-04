@@ -10,7 +10,9 @@ import {
   Main,
 } from '@strapi/design-system';
 import {
+  CheckPagePermissions,
   Link,
+  LoadingIndicatorPage,
   useFetchClient,
   useNotification,
   useQueryParams,
@@ -19,13 +21,16 @@ import {
 import { ArrowLeft, Check } from '@strapi/icons';
 import isEqual from 'lodash/isEqual';
 import upperFirst from 'lodash/upperFirst';
-import PropTypes from 'prop-types';
 import { stringify } from 'qs';
 import { useIntl } from 'react-intl';
 import { useMutation, useQueryClient } from 'react-query';
+import { Navigate, useParams } from 'react-router-dom';
 
+import { useTypedSelector } from '../../../core/store/hooks';
 import { queryKeyPrefix as initDataQueryKey } from '../../hooks/useContentManagerInitData';
+import { useContentTypeLayout } from '../../hooks/useLayouts';
 import { checkIfAttributeIsDisplayable } from '../../utils/attributes';
+import { formatLayoutForSettingsView } from '../../utils/layouts';
 import { getTranslation } from '../../utils/translations';
 
 import { EditFieldForm } from './components/EditFieldForm';
@@ -34,13 +39,27 @@ import { SortDisplayedFields } from './components/SortDisplayedFields';
 import { EXCLUDED_SORT_ATTRIBUTE_TYPES } from './constants';
 import reducer, { initialState } from './reducer';
 
-export const ListSettingsView = ({ layout, slug }) => {
+const ListSettingsView = () => {
   const queryClient = useQueryClient();
   const { put } = useFetchClient();
   const { formatMessage } = useIntl();
   const { trackUsage } = useTracking();
+  const { collectionType, slug } = useParams();
   const [{ query }] = useQueryParams();
   const toggleNotification = useNotification();
+
+  const { isLoading: isLoadingLayout, layout: fetchedLayout } = useContentTypeLayout(slug);
+
+  const { rawContentTypeLayout: layout } = React.useMemo(() => {
+    let rawContentTypeLayout = null;
+
+    if (fetchedLayout?.contentType) {
+      rawContentTypeLayout = formatLayoutForSettingsView(fetchedLayout.contentType);
+    }
+
+    return { rawContentTypeLayout };
+  }, [fetchedLayout]);
+
   const [{ fieldToEdit, fieldForm, initialData, modifiedData }, dispatch] = React.useReducer(
     reducer,
     initialState,
@@ -51,10 +70,19 @@ export const ListSettingsView = ({ layout, slug }) => {
     })
   );
 
+  React.useEffect(() => {
+    dispatch({
+      type: 'SET_DATA',
+      data: layout,
+    });
+  }, [layout]);
+
   const isModalFormOpen = Object.keys(fieldForm).length !== 0;
 
-  const { attributes, options } = layout;
-  const displayedFields = modifiedData.layouts.list;
+  const { attributes = {}, options } = layout ?? {};
+  const { list: displayedFields = [] } = modifiedData?.layouts ?? {
+    list: [],
+  };
 
   const handleChange = ({ target: { name, value } }) => {
     dispatch({
@@ -169,11 +197,19 @@ export const ListSettingsView = ({ layout, slug }) => {
     });
   };
 
+  if (collectionType === 'single-types') {
+    return <Navigate to={`/single-types/${slug}`} />;
+  }
+
+  if (isLoadingLayout) {
+    return <LoadingIndicatorPage />;
+  }
+
   const {
     settings: { pageSize, defaultSortBy, defaultSortOrder },
     kind,
     uid,
-  } = initialData;
+  } = initialData ?? { settings: {} };
 
   return (
     <Layout>
@@ -223,7 +259,7 @@ export const ListSettingsView = ({ layout, slug }) => {
                 id: getTranslation('components.SettingsViewWrapper.pluginHeader.title'),
                 defaultMessage: 'Configure the view - {name}',
               },
-              { name: upperFirst(modifiedData.info.displayName) }
+              { name: upperFirst(modifiedData?.info.displayName) }
             )}
           />
           <ContentLayout>
@@ -255,7 +291,7 @@ export const ListSettingsView = ({ layout, slug }) => {
                 onClickEditField={handleClickEditField}
                 onMoveField={move}
                 onRemoveField={handleRemoveField}
-                metadatas={modifiedData.metadatas}
+                metadatas={modifiedData?.metadatas ?? {}}
               />
             </Flex>
           </ContentLayout>
@@ -277,24 +313,16 @@ export const ListSettingsView = ({ layout, slug }) => {
   );
 };
 
-ListSettingsView.propTypes = {
-  layout: PropTypes.shape({
-    uid: PropTypes.string.isRequired,
-    settings: PropTypes.shape({
-      bulkable: PropTypes.bool,
-      defaultSortBy: PropTypes.string,
-      defaultSortOrder: PropTypes.string,
-      filterable: PropTypes.bool,
-      pageSize: PropTypes.number,
-      searchable: PropTypes.bool,
-    }).isRequired,
-    metadatas: PropTypes.object.isRequired,
-    options: PropTypes.object.isRequired,
-    attributes: PropTypes.objectOf(
-      PropTypes.shape({
-        type: PropTypes.string,
-      })
-    ).isRequired,
-  }).isRequired,
-  slug: PropTypes.string.isRequired,
+const ProtectedListSettingsView = () => {
+  const permissions = useTypedSelector(
+    (state) => state.admin_app.permissions.contentManager?.collectionTypesConfigurations
+  );
+
+  return (
+    <CheckPagePermissions permissions={permissions}>
+      <ListSettingsView />
+    </CheckPagePermissions>
+  );
 };
+
+export { ProtectedListSettingsView, ListSettingsView };
